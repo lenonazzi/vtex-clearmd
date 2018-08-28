@@ -1,6 +1,6 @@
 {
   "name": "vtex-clearmd",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Clear VTEX Master Data",
   "main": "src/index.js",
   "author": "Lenon Azzi",
