@@ -18,7 +18,10 @@ npm start
 
 Follow the steps and wait until the magic is complete.
 
-_PS: Also you can run the script again by typing "**y**" after the process is complete._
+<p align="center">
+  <img src="https://media.giphy.com/media/2wTbuwNhl9xq2JBs8l/giphy.gif" /><br/>
+  <sub><i>PS: Also you can run the script again by typing "<b>y</b>" after the process is complete.</i></sub>
+</p>
 
 ### Setup items
 
