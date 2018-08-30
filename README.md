@@ -10,7 +10,7 @@ Clone the repository to your local machine.
 git clone https://github.com/lenonazzi/vtex-clearmd.git
 ```
 
-Go to your terminal, change current folder to the one you've cloned the repo and run:
+Go to your terminal, change current folder to the one you've cloned the repo then run:
 
 ```shell
 npm start
