@@ -1,5 +1,9 @@
 const inquirer = require('inquirer')
 const axios = require('axios')
+const ora = require('ora');
+const chalk = require('chalk');
+
+const spinner = ora();
 
 class clearMD {
   constructor() {
@@ -11,7 +15,7 @@ class clearMD {
 
     this.options = userData
 
-    this.getUrl = `https://api.vtexcrm.com.br/${this.options.store}/dataentities/${this.options.acronym}/search?_fields=${this.options.fields}`
+    this.getUrl = `https://api.vtexcrm.com.br/${this.options.store}/dataentities/${this.options.acronym}/scroll`
     this.deleteUrl = `https://api.vtex.com/${this.options.store}/dataentities/${this.options.acronym}/documents`
 
     this.start()
@@ -25,15 +29,11 @@ class clearMD {
       },
       {
         name: 'acronym',
-        default: 'SL'
-      },
-      {
-        name: 'fields',
-        default: 'id,nome'
+        default: 'ST'
       },
       {
         name: 'vtexAppKey',
-        default: 'my@email.com'
+        default: 'vtexappkey-store-key'
       },
       {
         type: 'password',
@@ -45,44 +45,84 @@ class clearMD {
   }
 
   async start() {
-    const data = await this.getData()
+    spinner.start(`Getting documents...`)
 
-    await this.clear(data)
-    this.confirmExit()
+    const { headers, data } = await this.getData()
+
+    if (headers === undefined) {
+      return false
+    }
+
+    const token = headers['x-vtex-md-token']
+
+    let dataIsEmpty = data.length > 0 ? false : true
+
+    if (dataIsEmpty) {
+      spinner.succeed(chalk.bold.green('No documents found. Process complete!'))
+      return false
+    }
+
+    const documents = []
+    documents.push(data)
+
+    do {
+      const { data } = await this.getData(token)
+
+      if (data.length > 0) {
+        documents.push(data)
+      } else {
+        dataIsEmpty = true
+      }
+    } while (!dataIsEmpty)
+
+    const allDocuments = [].concat.apply([], documents)
+
+    spinner.succeed(chalk.bold.green('All documents have been received!'))
+
+    if (await this.confirmDelete()) {
+      this.clear(allDocuments)
+    }
   }
 
-  async getData() {
+  async getData(token = null) {
     const config = {
       headers: {
         Accept: 'application/vnd.vtex.ds.v10+json',
         'Content-Type': 'application/json',
-        'REST-Range': 'resources=0-999'
+        'REST-Range': 'resources=0-999',
+        'x-vtex-api-appKey': this.options.vtexAppKey,
+        'x-vtex-api-appToken': this.options.vtexAppToken
       }
     }
 
-    let response
+    let response = false
 
     try {
-      response = await axios.get(this.getUrl, config)
+      const url = token === null ? this.getUrl : `${this.getUrl}?_token=${token}`
+
+      response = await axios.get(url, config)
     } catch (error) {
-      console.log('Can\'t get list.Please, check your credentials.')
-      throw new Error(error)
+      spinner.fail(chalk.bold.red(`Can't get list. Please, check your credentials. ${error}`));
     }
 
-    return response.data
+    return response
   }
 
-  async clear(data) {
-    await data.forEach(async item => {
-      await this.delete(item.id)
+  clear(data) {
+    spinner.start(chalk.bold.green('Deleting all documents...'))
 
-      console.log(`Delete #${item.id}`)
-      console.log(`Nome ${item.nome}`)
-      console.log('-')
+    const dataLength = data.length - 1
+
+    data.forEach((item, index) => {
+      this.delete(item.id, () => {
+        if (index >= dataLength) {
+          spinner.succeed(chalk.bold.green('Process complete! All documents have been deleted.'))
+        }
+      })
     })
   }
 
-  async delete(id) {
+  delete(id, callback) {
     const config = {
       headers: {
         Accept: 'application/vnd.vtex.ds.v10+json',
@@ -92,29 +132,41 @@ class clearMD {
       }
     }
 
-    try {
-      await axios.delete(`${this.deleteUrl}/${id}`, config)
-
-      console.log('\n\n>>', `${this.deleteUrl}/${id}`)
-    } catch (error) {
-      throw new Error(error)
-    }
+    axios
+      .delete(`${this.deleteUrl}/${id}`, config)
+      .then(() => {
+        callback()
+      })
+      .catch(error => {
+        if (!spinner.enabled) {
+          console.log(chalk.bold.red(`✖ ID: ${id} was not deleted. ${error}`))
+        } else {
+          spinner.stopAndPersist(
+            {
+              'text': chalk.bold.red(`ID: ${id} was not deleted. ${error}`),
+              'symbol': chalk.bold.red('✖')
+            }
+          ).start()
+        }
+      })
   }
 
-  async confirmExit() {
+  async confirmDelete() {
     const question = [
       {
         type: 'confirm',
         name: 'confirm',
-        message: 'Run script again with same data?'
+        message: 'Do you really want to DELETE ALL DOCUMENTS?'
       }
     ]
 
     const answer = await inquirer.prompt(question)
 
     if (answer.confirm) {
-      this.start()
+      return true
     }
+
+    return false
   }
 }
 

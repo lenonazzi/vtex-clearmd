@@ -1,19 +1,22 @@
 {
   "name": "vtex-clearmd",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Clear VTEX Master Data",
   "main": "src/index.js",
   "author": "Lenon Azzi",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon --no-stdin src/index.js",
+    "start": "node src/index.js",
+    "dev": "nodemon --no-stdin src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "axios": "^0.18.0",
-    "nodemon": "^1.18.3"
+    "nodemon": "^1.18.3",
+    "ora": "^5.4.0"
   },
   "dependencies": {
+    "chalk": "^4.1.0",
     "inquirer": "^6.2.0"
   }
 }
